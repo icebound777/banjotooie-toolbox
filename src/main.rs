@@ -9,22 +9,47 @@ use std::fs;
 const BT_US_10_ROM_SHA1: [u8; 20] = hex!("af1a89e12b638b8d82cc4c085c8e01d4cba03fb3");
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let rom_file_path = &args[1];
+    let arg1 = parse_arguments();
+    let rom_file_path = match arg1 {
+        Result::Ok(x) => x,
+        Result::Err(x) => panic!("{}", x)
+    };
 
-    if check_rom_checksum(rom_file_path.clone()) {
-        println!("Yay");
+    let rom_content = read_rom_content(rom_file_path);
+    let _rom_content = match rom_content {
+        Result::Ok(x) => x,
+        Result::Err(x) => panic!("{}", x)
+    };
+}
+
+fn parse_arguments() -> Result<String, String> {
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 2 {
+        Err("No filepath to BT ROM provided".to_owned())
     } else {
-        println!("Nay");
+        Ok((args[1]).clone())
     }
 }
 
-fn check_rom_checksum(file_path: String) -> bool {
+fn read_rom_content(file_path: String) -> Result<Vec<u8>, String> {
+    println!("Read provided file ...");
+
     let rom_content = fs::read(file_path)
         .expect("Could not read provided file");
 
-    let mut hasher = Sha1::new();
+    if check_rom_checksum(&rom_content) {
+        println!("ROM ok");
+        Ok(rom_content)
+    } else {
+        Err("Provided file does not match expected BT US 1.0 ROM checksum".to_owned())
+    }
+}
 
+fn check_rom_checksum(rom_content: &Vec<u8>) -> bool {
+    println!("Check provided file checksum ...");
+
+    let mut hasher = Sha1::new();
     hasher.update(rom_content);
 
     let result = hasher.finalize();
