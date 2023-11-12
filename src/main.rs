@@ -1,3 +1,4 @@
+use compression::decompressor;
 // Sha1 checksum calc
 use hex_literal::hex;
 use sha1::{Sha1, Digest};
@@ -6,20 +7,27 @@ use sha1::{Sha1, Digest};
 use std::env;
 use std::fs;
 
+// Our modules
+mod compression;
+
 const BT_US_10_ROM_SHA1: [u8; 20] = hex!("af1a89e12b638b8d82cc4c085c8e01d4cba03fb3");
 
 fn main() {
+    // Get call arguments to acquire file path to ROM
     let arg1 = parse_arguments();
     let rom_file_path = match arg1 {
         Result::Ok(x) => x,
         Result::Err(x) => panic!("{}", x)
     };
 
-    let rom_content = read_rom_content(rom_file_path);
-    let _rom_content = match rom_content {
+    // Load provided file and check if it's actually BT US 1.0
+    let rom_content = read_rom_content(&rom_file_path);
+    let rom_content = match rom_content {
         Result::Ok(x) => x,
         Result::Err(x) => panic!("{}", x)
     };
+
+    decompressor::decompress_single_file(&rom_content, rom_file_path, 0xC359FC, 0xC35A3C);
 }
 
 fn parse_arguments() -> Result<String, String> {
@@ -32,7 +40,7 @@ fn parse_arguments() -> Result<String, String> {
     }
 }
 
-fn read_rom_content(file_path: String) -> Result<Vec<u8>, String> {
+fn read_rom_content(file_path: &String) -> Result<Vec<u8>, String> {
     println!("Read provided file ...");
 
     let rom_content = fs::read(file_path)
